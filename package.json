@@ -1,11 +1,12 @@
 {
-  "name": "sequelize-cli",
+  "name": "@rankmi/sequelize-cli",
   "version": "6.3.0",
   "description": "The Sequelize CLI",
   "bin": {
     "sequelize": "./lib/sequelize",
     "sequelize-cli": "./lib/sequelize"
   },
+
   "files": [
     "lib"
   ],
@@ -62,14 +63,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/sequelize/cli.git"
+    "url": "git://github.com/Rankmi/cli.git"
   },
   "keywords": [
     "sequelize",
     "cli"
   ],
-  "contributors": [
-    {
+  "contributors": [{
       "name": "Sascha Depold",
       "email": "sascha@depold.com"
     },
