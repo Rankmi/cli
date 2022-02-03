@@ -6,7 +6,38 @@ import {
 } from '../core/migrator';
 
 import helpers from '../helpers';
+import index from '../helpers/index';
 import _ from 'lodash';
+import cliColor from 'cli-color';
+
+function logMigrator(s) {
+  if (s.indexOf('Executing') !== 0) {
+    index.default.view.log(s);
+  }
+}
+
+const Sequelize = index.default.generic.getSequelize();
+
+function getSequelizeInstance(args) {
+  let config = null;
+
+  try {
+    config = index.default.config.readConfig();
+  } catch (e) {
+    index.default.view.error(e);
+  }
+
+  config = _.default.defaults(config, {
+    logging: logMigrator,
+  });
+
+  try {
+    if (args.scheme) config.define = { ...config.define, scheme: args.scheme };
+    return new Sequelize(config);
+  } catch (e) {
+    index.default.view.error(e);
+  }
+}
 
 exports.builder = (yargs) =>
   _baseOptions(yargs)
@@ -22,19 +53,59 @@ exports.builder = (yargs) =>
 exports.handler = async function (args) {
   const command = args._[0];
 
+  function logMigrator(s) {
+    if (s.indexOf('Executing') !== 0) {
+      index.default.view.log(s);
+    }
+  }
+
   // legacy, gulp used to do this
   await helpers.config.init();
 
-  switch (command) {
-    case 'db:migrate':
-      await migrate(args);
-      break;
-    case 'db:migrate:schema:timestamps:add':
-      await migrateSchemaTimestampAdd(args);
-      break;
-    case 'db:migrate:status':
-      await migrationStatus(args);
-      break;
+  let config;
+  try {
+    config = index.default.config.readConfig();
+  } catch (e) {
+    index.default.view.error(e);
+  }
+  config = _.default.defaults(config, {
+    logging: logMigrator,
+  });
+
+  const { schema, multitenant, multitenantConfig } = { ...config.define };
+  const { defaultTable, defaultAttribute } = { ...multitenantConfig };
+  const aux = [args.schema || schema || 'public'];
+  if (multitenant && !args.schema) {
+    try {
+      const tenantsSequelize = getSequelizeInstance({
+        ...config,
+        define: { ...config.define, schema: 'public' },
+      });
+      let [schemesList] =
+        (await tenantsSequelize.query(
+          'SELECT * FROM ' + (defaultTable || 'tenants')
+        )) || [];
+      aux.push(
+        ...schemesList.map((data) => data[defaultAttribute || 'scheme'])
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  for (const schema of aux) {
+    args = { ...args, schema };
+    console.log(cliColor.bgGreen(schema));
+    switch (command) {
+      case 'db:migrate':
+        await migrate(args);
+        break;
+      case 'db:migrate:schema:timestamps:add':
+        await migrateSchemaTimestampAdd(args);
+        break;
+      case 'db:migrate:status':
+        await migrationStatus(args);
+        break;
+    }
   }
 
   process.exit(0);
@@ -51,7 +122,7 @@ function migrate(args) {
             helpers.view.log(
               'No migrations were executed, database schema was already up to date.'
             );
-            process.exit(0);
+            return options;
           }
           if (args.to) {
             if (
@@ -61,7 +132,7 @@ function migrate(args) {
               helpers.view.log(
                 'No migrations were executed, database schema was already up to date.'
               );
-              process.exit(0);
+              return options;
             }
             options.to = args.to;
           }
@@ -74,7 +145,7 @@ function migrate(args) {
               helpers.view.log(
                 'No migrations were executed, database schema was already up to date.'
               );
-              process.exit(0);
+              return options;
             }
             options.from = args.from;
           }

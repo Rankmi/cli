@@ -11,7 +11,7 @@ export function logMigrator(s) {
   }
 }
 
-function getSequelizeInstance() {
+function getSequelizeInstance(args) {
   let config = null;
 
   try {
@@ -23,6 +23,8 @@ function getSequelizeInstance() {
   config = _.defaults(config, { logging: logMigrator });
 
   try {
+    if (args && args.schema)
+      config.define = { ...config.define, schema: args.schema };
     return new Sequelize(config);
   } catch (e) {
     helpers.view.error(e);
@@ -37,10 +39,12 @@ export async function getMigrator(type, args) {
     process.exit(1);
   }
 
-  const sequelize = getSequelizeInstance();
+  const sequelize = getSequelizeInstance(args);
   const migrator = new Umzug({
     storage: helpers.umzug.getStorage(type),
-    storageOptions: helpers.umzug.getStorageOptions(type, { sequelize }),
+    storageOptions: helpers.umzug.getStorageOptions(type, {
+      sequelize,
+    }),
     logging: helpers.view.log,
     migrations: {
       params: [sequelize.getQueryInterface(), Sequelize],
