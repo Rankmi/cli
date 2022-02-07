@@ -27,7 +27,7 @@ function getSequelizeInstance(args) {
     index.default.view.error(e);
   }
 
-  config = _.default.defaults(config, {
+  config = _.defaults(config, {
     logging: logMigrator,
   });
 
@@ -68,7 +68,7 @@ exports.handler = async function (args) {
   } catch (e) {
     index.default.view.error(e);
   }
-  config = _.default.defaults(config, {
+  config = _.defaults(config, {
     logging: logMigrator,
   });
 
