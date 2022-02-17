@@ -81,20 +81,25 @@ exports.handler = async function (args) {
         ...config,
         define: { ...config.define, schema: 'public' },
       });
-      let [schemesList] =
-        (await tenantsSequelize.query(
-          'SELECT * FROM ' + (defaultTable || 'tenants')
-        )) || [];
-      aux.push(
-        ...schemesList.map((data) => data[defaultAttribute || 'scheme'])
+      const exist = await tenantsSequelize.query(
+        `select  exists   (  select  *  from information_schema."tables" where table_schema = 'public' and table_name = 'tenants' limit  1);`
       );
+      if (exist && exist[0] && exist[0][0].exists) {
+        let [schemesList] =
+          (await tenantsSequelize.query(
+            'SELECT * FROM ' + (defaultTable || 'tenants')
+          )) || [];
+        aux.push(
+          ...schemesList.map((data) => data[defaultAttribute || 'scheme'])
+        );
+      }
     } catch (error) {
       console.log(error);
     }
   }
   for (const schema of aux) {
     args = { ...args, schema };
-    console.log(cliColor.bgGreen(schema));
+    console.log(cliColor.black.bgGreen(schema));
     switch (command) {
       case 'db:migrate':
         await migrate(args);
